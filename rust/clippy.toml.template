@@ -1,0 +1,17 @@
+# clippy.toml — project-level Clippy lint configuration.
+# Docs: https://doc.rust-lang.org/clippy/configuration.html
+
+# ADAPT: set to your minimum supported Rust version
+msrv = "1.70"
+
+# Keep cognitive complexity reasonable
+cognitive-complexity-threshold = 15
+
+# ADAPT: increase if you have deliberately large types (e.g. large enums)
+type-complexity-threshold = 250
+
+# Avoid overly long function signatures
+too-many-arguments-threshold = 8
+
+# Allow single-char names only in short closures / iterators
+single-char-binding-names-threshold = 4

@@ -1,0 +1,22 @@
+# rustfmt.toml — Rust formatting configuration.
+# Docs: https://rust-lang.github.io/rustfmt/
+
+# ADAPT: change to match your project's Rust edition
+edition = "2021"
+
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+
+# Group imports: std → external → crate-local
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+
+# Consistent trailing commas in multi-line constructs
+trailing_comma = "Vertical"
+
+# Reorder impl items to a standard order
+reorder_impl_items = true
+
+# Keep single-line closures on one line when short
+closure_block_indent_threshold = 1

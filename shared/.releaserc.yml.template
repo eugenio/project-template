@@ -1,0 +1,23 @@
+# ADAPT: change 'main' to your release branch name if different
+branches:
+  - main
+tagFormat: "v${version}"
+plugins:
+  - ["@semantic-release/commit-analyzer", {preset: angular, releaseRules: [
+      {type: "feat",     release: "minor"},
+      {type: "fix",      release: "patch"},
+      {type: "perf",     release: "patch"},
+      {type: "revert",   release: "patch"},
+      {type: "docs",     release: "patch"},
+      {type: "refactor", release: "patch"},
+    ]}]
+  - ["@semantic-release/release-notes-generator", {preset: angular}]
+  - ["@semantic-release/changelog", {changelogFile: CHANGELOG.md}]
+  - ["@semantic-release/git", {
+      # ADAPT: list files that contain the version string and should be committed on release
+      assets: ["CHANGELOG.md", "pyproject.toml"],
+      message: "release: v${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+    }]
+  # ADAPT: choose your release target — use @semantic-release/github for GitHub,
+  # @semantic-release/gitlab for GitLab, or remove entirely for local-only releases.
+  - "@semantic-release/github"

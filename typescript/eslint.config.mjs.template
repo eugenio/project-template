@@ -1,0 +1,47 @@
+// eslint.config.mjs — flat ESLint config (ESLint v9+).
+// ADAPT: install required plugins: npm i -D eslint @typescript-eslint/eslint-plugin
+//        @typescript-eslint/parser eslint-plugin-import
+
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
+
+/** @type {import("eslint").Linter.FlatConfig[]} */
+export default [
+  {
+    // ADAPT: adjust ignores to match your project's generated/vendor dirs
+    ignores: ["dist/**", "node_modules/**", "coverage/**"],
+  },
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        // ADAPT: point to your tsconfig if you have path aliases or multiple tsconfigs
+        project: "./tsconfig.json",
+        sourceType: "module",
+      },
+    },
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+    },
+    rules: {
+      // TypeScript recommended + strict
+      ...tsPlugin.configs["recommended"].rules,
+      ...tsPlugin.configs["recommended-requiring-type-checking"].rules,
+
+      // ADAPT: tune or override specific rules for your team's preferences
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/explicit-function-return-type": "warn",
+      "no-console": "warn",
+    },
+  },
+  {
+    // Relaxed rules for test files
+    files: ["**/*.test.ts", "**/*.spec.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-function-return-type": "off",
+    },
+  },
+];

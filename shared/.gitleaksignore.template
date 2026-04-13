@@ -1,0 +1,9 @@
+# .gitleaksignore — allowlist for gitleaks false positives.
+# Each line is a SHA256 fingerprint of a finding to suppress.
+# Generate with: gitleaks detect --staged --report-format json | jq '.[].Fingerprint'
+#
+# ADAPT: add fingerprints for legitimate test fixtures, example keys, etc.
+# Format: <sha256-fingerprint>
+#
+# Example (never commit real keys — this suppresses known-safe test vectors):
+# 5f4dcc3b5aa765d61d8327deb882cf99a5b5d0e5f4dcc3b5aa765d61d8327deb

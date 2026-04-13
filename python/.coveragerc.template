@@ -1,0 +1,36 @@
+# .coveragerc — standalone coverage config (alternative to [tool.coverage.*] in pyproject.toml)
+# Use this file if you prefer to keep coverage config separate or need options
+# not yet supported in pyproject.toml.
+
+[run]
+# ADAPT: list all source directories to measure
+source =
+    src
+
+# ADAPT: add patterns for generated files, vendor code, migration dirs, etc.
+omit =
+    */tests/*
+    */__pycache__/*
+    */migrations/*
+    */_vendor/*
+
+branch = true
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+show_missing = true
+precision = 1
+# ADAPT: set your project's coverage gate (also set in pre-commit-hook.sh)
+fail_under = 97
+
+[html]
+directory = coverage_html
+
+[xml]
+output = coverage.xml

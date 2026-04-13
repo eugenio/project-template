@@ -1,0 +1,45 @@
+root = true
+
+# Defaults — all files
+[*]
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Python — PEP 8 / Black / Ruff compatible
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# TOML (pyproject.toml, pixi.toml, Cargo.toml)
+[*.toml]
+indent_style = space
+indent_size = 4
+
+# Rust
+[*.rs]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# TypeScript / JavaScript / JSON / YAML / CSS
+[*.{ts,tsx,js,jsx,json,yml,yaml,css,scss}]
+indent_style = space
+indent_size = 2
+
+# Markdown — preserve trailing spaces (line breaks)
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+# Makefiles require tabs
+[Makefile]
+indent_style = tab
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 4

@@ -1,0 +1,114 @@
+[project]
+# ADAPT: change name, version, requires-python
+name = "my-project"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+# ADAPT: list the packages / top-level dirs that contain importable code
+where = ["."]
+include = ["src*"]
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = [
+    "-v", "--tb=short", "--strict-markers",
+    # ADAPT: update --cov targets to match your source dirs
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html:coverage_html",
+]
+markers = [
+    "smoke: fast sanity checks",
+    "slow: tests with real I/O or long runtimes",
+    "integration: integration tests",
+]
+timeout = 60
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+# ADAPT: set python_version to match your requires-python floor
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# bandit
+# ---------------------------------------------------------------------------
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]  # assert statements are fine in tests
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+# ADAPT: list source dirs that should be measured
+source = ["src"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 1
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+# ADAPT: set target-version to your minimum Python
+target-version = "py311"
+line-length = 100
+exclude = ["scripts/", "notebooks/", "*.ipynb", ".pixi/", ".venv/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = [
+    "E402",  # module-level import not at top
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+# ADAPT: list your first-party package names
+known-first-party = ["src"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F841"]  # unused variables OK in tests
+
+# ---------------------------------------------------------------------------
+# bumpversion  (used by semantic-release exec plugin or manual bumps)
+# ---------------------------------------------------------------------------
+[tool.bumpversion]
+current_version = "0.1.0"
+commit = false
+tag = false
+tag_name = "v{new_version}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+# ADAPT: add more [[tool.bumpversion.files]] entries for pixi.toml, README badges, etc.

@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    // ADAPT: set target to match your runtime (node20, es2022, etc.)
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+
+    // Output
+    // ADAPT: change outDir to your build output folder
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    // Strict mode — all flags on
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Imports
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+
+    // ADAPT: add paths aliases if you use them (e.g. "@app/*": ["src/*"])
+    "paths": {}
+  },
+  // ADAPT: adjust include/exclude to match your project layout
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

@@ -1,0 +1,57 @@
+# .gitignore additions — append these to your project's .gitignore.
+# Covers common outputs from tools used across the protein_ai_platform stack.
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+.pixi/
+
+# --- Coverage ---
+.coverage
+.coverage.*
+coverage_html/
+coverage.xml
+htmlcov/
+
+# --- Testing ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / semantic-release ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# --- Secrets / local config ---
+.env
+.env.*
+*.pem
+*.key
+secrets.json
+credentials.json
+settings.local.json
+
+# --- Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Docs build ---
+docs/_build/
+site/
