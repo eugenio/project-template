@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pre-commit hook — blocks commit if quality gates fail.
-# Gates: ruff lint/format, mypy, mdformat, coverage, docstrings, UML staleness, secrets.
+# Gates: ruff lint/format, mypy, mdformat, coverage, test categories, docstrings, UML staleness, secrets.
 #
 # Install:  cp pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 # Bypass a gate once:  SKIP_UML_CHECK=1 git commit ...
@@ -116,7 +116,32 @@ ok "Coverage gate passed (>= ${COVERAGE_GATE}%)."
 echo ""
 
 # ---------------------------------------------------------------------------
-# 5. Docstring coverage gate
+# 5. Mandatory test category existence check
+# ---------------------------------------------------------------------------
+# Every project MUST have: integration, e2e, smoke, edge_cases tests.
+# See shared/TESTING_DIRECTIVE.md for the full policy.
+info "Checking mandatory test categories exist..."
+MISSING_CATS=""
+for cat in integration e2e smoke edge_cases; do
+    cat_dir="$TEST_DIR/$cat"
+    if [ "$cat" = "integration" ]; then
+        # integration tests may be in a single file or a directory
+        if [ ! -d "$cat_dir" ] && ! find "$TEST_DIR" -maxdepth 2 -name "*integration*" -type f 2>/dev/null | grep -q .; then
+            MISSING_CATS="$MISSING_CATS $cat"
+        fi
+    elif [ ! -d "$cat_dir" ] || [ -z "$(find "$cat_dir" -name 'test_*.py' -type f 2>/dev/null)" ]; then
+        MISSING_CATS="$MISSING_CATS $cat"
+    fi
+done
+
+if [ -n "$MISSING_CATS" ]; then
+    fail "Missing mandatory test categories:$MISSING_CATS. See docs/TESTING_DIRECTIVE.md."
+fi
+ok "All mandatory test categories present (integration, e2e, smoke, edge_cases)."
+echo ""
+
+# ---------------------------------------------------------------------------
+# 6. Docstring coverage gate
 # ---------------------------------------------------------------------------
 if [ -n "$STAGED_PY_FILES" ]; then
     info "Running interrogate docstring check (gate: ${DOCSTRING_GATE}%)..."
@@ -132,7 +157,7 @@ if [ -n "$STAGED_PY_FILES" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 6. UML staleness check
+# 7. UML staleness check
 # ---------------------------------------------------------------------------
 if [ -n "$UML_DIR" ] && [ -d "$UML_DIR" ]; then
     info "Checking UML diagram freshness..."
@@ -161,7 +186,7 @@ if [ -n "$UML_DIR" ] && [ -d "$UML_DIR" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Gitleaks secret scan
+# 8. Gitleaks secret scan
 # ---------------------------------------------------------------------------
 if command -v gitleaks &>/dev/null; then
     info "Scanning staged files for secrets with gitleaks..."
