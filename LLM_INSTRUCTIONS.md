@@ -188,3 +188,48 @@ All paths are relative to the target project root.
 | `typescript/pre-commit-hook.sh` | `.git/hooks/pre-commit` |
 
 > `.git/hooks/pre-commit` must be executable (`chmod +x`). setup.sh handles this automatically.
+
+## Testing Directive — Mandatory Test Categories
+
+Every project set up with this template **MUST** implement four test categories. The pre-commit hook (gate 5) enforces their existence at commit time.
+
+| Category | Marker | Directory | Coverage Gate | Purpose |
+|---|---|---|---|---|
+| **Integration** | `@pytest.mark.integration` | `tests/integration/` or `tests/test_integration.py` | 99%+ | Module boundaries, service interactions, DB queries |
+| **E2E** | `@pytest.mark.e2e` | `tests/e2e/` | 99%+ | Full user workflows through the public API |
+| **Smoke** | `@pytest.mark.smoke` | `tests/smoke/` | 99%+ | Quick deployment health checks (< 30s) |
+| **Edge Case** | `@pytest.mark.edge_case` | `tests/edge_cases/` | No gate | Boundary values, injection, Unicode, overflow, empty inputs |
+
+### Coverage rules
+
+- Integration, E2E, and Smoke tests share the **same 99%+ coverage gate** as unit tests
+- Edge case tests are **exempt** from the coverage gate — their value is catching regressions at boundaries, not covering new lines
+
+### When setting up a new project
+
+After copying templates (Step 2), create the test directories:
+
+```bash
+mkdir -p tests/{integration,e2e,smoke,edge_cases}
+touch tests/{integration,e2e,smoke,edge_cases}/__init__.py
+```
+
+Add the `edge_case` marker to `pyproject.toml` `[tool.pytest.ini_options].markers`:
+
+```toml
+markers = [
+    # ... existing markers ...
+    "edge_case: marks edge case / boundary value tests",
+]
+```
+
+Exclude non-default categories from default test runs in `addopts`:
+
+```toml
+addopts = [
+    "-m", "not integration and not e2e and not smoke and not benchmark and not edge_case",
+    # ... other flags ...
+]
+```
+
+See `shared/TESTING_DIRECTIVE.md` for the full policy including what each category must test.
