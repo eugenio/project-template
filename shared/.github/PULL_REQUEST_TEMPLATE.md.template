@@ -1,0 +1,41 @@
+<!--
+  ⚠️ MERGE STRATEGY — READ BEFORE CLICKING MERGE
+
+  This repository enforces **atomic commit discipline** via four gates:
+    - commit-msg        → commitlint (angular preset)
+    - pre-commit        → git-absorb --dry-run (no-fixup gate)
+    - post-commit       → atomicity classifier (writes .git/NON_ATOMIC_COMMIT)
+    - pre-push          → pre-push-atomicity-gate (blocks non-atomic commits)
+
+  The gates are preserved across merges ONLY if you use "Rebase and Merge".
+  Squash-merge collapses all commits into one — **DO NOT USE IT**.
+  Plain merge commits add noise; avoid unless explicitly required.
+
+  If admin has run scripts/configure-merge-strategy.sh on the repo, only
+  "Rebase and Merge" will be available in the GitHub UI.
+-->
+
+## Summary
+
+<!-- What does this PR change, and why? 1–3 bullet points. -->
+
+## Linear issue
+
+<!-- e.g. FUZ-123. Remove if N/A. -->
+
+## Testing
+
+<!-- How did you validate this? List tests added/modified, manual steps run. -->
+
+- [ ] Unit tests pass
+- [ ] Integration / E2E tests pass (if applicable)
+- [ ] Coverage gate met (see .coveragerc target)
+- [ ] Docstring gate met (interrogate / rustdoc / tsdoc)
+
+## Atomic-commit checklist
+
+- [ ] Every commit in this PR is atomic (one logical change per commit).
+- [ ] No commit was flagged by the post-commit atomicity check.
+  If any were, they were split or acknowledged with `ATOMICITY_ACK=1`
+  and justified in the PR description.
+- [ ] **Merge using "Rebase and Merge"** — squash-merge is forbidden.

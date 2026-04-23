@@ -58,6 +58,10 @@ Arguments: `--lang python|rust|typescript`, `--project-dir <path>`.
   - `pre-commit` — `git-absorb --dry-run` blocks commits that look like fixups of an existing branch commit.
   - `post-commit` — `atomicity-check.sh` classifies `HEAD`'s changed paths into logical areas (plugin:X, workers, gateway, docs, …) and appends the SHA to `.git/NON_ATOMIC_COMMIT` when the commit spans ≥ 3 independent areas (threshold configurable).
   - `pre-push` — `pre-push-atomicity-gate.sh` intersects pushed commits with that sentinel and blocks the push until non-atomic commits are split or acknowledged (`ATOMICITY_ACK=1`).
+- **Rebase-only merge strategy** (preserves atomic history through PR merges).
+  - `scripts/configure-merge-strategy.sh` — opt-in, one-time: uses `gh repo edit` to disallow squash-merge and merge-commit on the remote, leaving only "Rebase and Merge" in the GitHub UI.
+  - `.github/PULL_REQUEST_TEMPLATE.md` — header block reminding PR authors and reviewers that squash-merge is forbidden; includes an atomic-commit checklist.
+  - Follow-up (not yet automated): branch protection with `required_linear_history=true`. Tracked in [`TEMPLATE_ROADMAP.md`](TEMPLATE_ROADMAP.md).
 
 ## LLM / AI Agent Usage
 
