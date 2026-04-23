@@ -103,10 +103,35 @@ for tmpl in \
     "$SHARED_DIR/.releaserc.yml.template" \
     "$SHARED_DIR/package.json.template" \
     "$SHARED_DIR/.gitleaksignore.template" \
-    "$SHARED_DIR/.editorconfig.template"
+    "$SHARED_DIR/.editorconfig.template" \
+    "$SHARED_DIR/commitlint.config.js.template"
 do
     copy_template "$tmpl" "$PROJECT_DIR"
 done
+
+# scripts/hooks/: copy gate script and README into project (tracked files)
+HOOKS_SRC_DIR="$SHARED_DIR/scripts/hooks"
+HOOKS_DST_DIR="$PROJECT_DIR/scripts/hooks"
+mkdir -p "$HOOKS_DST_DIR"
+
+GATE_SRC="$HOOKS_SRC_DIR/git-absorb-gate.sh"
+GATE_DST="$HOOKS_DST_DIR/git-absorb-gate.sh"
+if [ -f "$GATE_DST" ]; then
+    skip "Already exists (skipping): scripts/hooks/git-absorb-gate.sh"
+else
+    cp "$GATE_SRC" "$GATE_DST"
+    chmod +x "$GATE_DST"
+    ok "Copied + chmod +x: scripts/hooks/git-absorb-gate.sh"
+fi
+
+HOOKS_README_SRC="$HOOKS_SRC_DIR/README.md"
+HOOKS_README_DST="$HOOKS_DST_DIR/README.md"
+if [ -f "$HOOKS_README_DST" ]; then
+    skip "Already exists (skipping): scripts/hooks/README.md"
+else
+    cp "$HOOKS_README_SRC" "$HOOKS_README_DST"
+    ok "Copied: scripts/hooks/README.md"
+fi
 
 # .gitignore-additions: append to existing .gitignore rather than replacing it
 GITIGNORE_ADDITIONS="$SHARED_DIR/.gitignore-additions.template"
@@ -146,13 +171,15 @@ case "$LANG" in
 esac
 
 # ---------------------------------------------------------------------------
-# 3. Pre-commit hook
+# 3. Git hooks (pre-commit + commit-msg)
 # ---------------------------------------------------------------------------
-section "Pre-commit hook"
+section "Git hooks (pre-commit + commit-msg)"
 
 HOOK_SRC="$LANG_DIR/pre-commit-hook.sh"
 GIT_DIR="$PROJECT_DIR/.git"
 HOOK_DST="$GIT_DIR/hooks/pre-commit"
+COMMIT_MSG_SRC="$SHARED_DIR/commit-msg-hook.sh"
+COMMIT_MSG_DST="$GIT_DIR/hooks/commit-msg"
 
 if [ ! -d "$GIT_DIR" ]; then
     skip ".git directory not found in $PROJECT_DIR — skipping hook install."
@@ -165,6 +192,14 @@ else
         cp "$HOOK_SRC" "$HOOK_DST"
         chmod +x "$HOOK_DST"
         ok "Installed pre-commit hook → $HOOK_DST"
+    fi
+
+    if [ -f "$COMMIT_MSG_DST" ]; then
+        skip "commit-msg hook already exists at $COMMIT_MSG_DST"
+    else
+        cp "$COMMIT_MSG_SRC" "$COMMIT_MSG_DST"
+        chmod +x "$COMMIT_MSG_DST"
+        ok "Installed commit-msg hook → $COMMIT_MSG_DST"
     fi
 fi
 
@@ -198,6 +233,9 @@ esac
 echo ""
 echo -e "  5. Adapt .releaserc.yml: branch name, assets list, github vs gitlab plugin"
 echo -e "  6. Install gitleaks: https://github.com/gitleaks/gitleaks#installing"
+echo -e "  7. Install git-absorb (atomicity gate):"
+echo -e "       pixi global install git-absorb  OR  cargo install git-absorb  OR  apt install git-absorb"
+echo -e "  8. Install Node deps (commitlint): npm install"
 echo "  📋 LLM instructions: scripts/project-template/LLM_INSTRUCTIONS.md"
 echo ""
 echo -e "${GREEN}Setup complete.${NC}"
