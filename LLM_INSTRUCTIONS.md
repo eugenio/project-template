@@ -106,7 +106,7 @@ cd /path/to/project && .git/hooks/pre-commit
 
 Fix every failure before proceeding. A hook that fails on a clean tree means the setup is incomplete.
 
-**Four additional hooks installed by `setup.sh`:**
+**Five additional hooks installed by `setup.sh`:**
 
 - **`commit-msg`** (`shared/commit-msg-hook.sh` → `.git/hooks/commit-msg`): runs
   `npx commitlint --edit "$1"` to validate the commit message against the angular
@@ -129,6 +129,13 @@ Fix every failure before proceeding. A hook that fails on a clean tree means the
   reads git's pre-push stdin, intersects pushed commits with
   `.git/NON_ATOMIC_COMMIT`, and **blocks the push** if any pushed commit is
   flagged. Acknowledging with `ATOMICITY_ACK=1` clears the SHAs from the sentinel.
+- **`scripts/hooks/pr-checklist-merge-gate.sh`** (called from `.git/hooks/pre-merge-commit`):
+  resolves the merge source branch, looks up its open GitHub PR via `gh`, and
+  **blocks the merge commit** when the PR's checklist has unchecked items
+  (`scripts/run_pr_checklists.py --fail-on-incomplete`). Auto-skips when `gh`
+  is missing/unauthenticated, when no open PR exists, or during rebase /
+  cherry-pick / bisect. Mirrored server-side by `.github/workflows/pr-checklist.yml`.
+  Bypass with `SKIP_PR_CHECKLIST=1` or `PR_CHECKLIST_ACK=1`.
 
 **Bypass env vars (per-commit / per-push, not persisted):**
 
@@ -140,6 +147,8 @@ Fix every failure before proceeding. A hook that fails on a clean tree means the
 | `ATOMICITY_THRESHOLD=<N>` | post-commit  | Override the default independence threshold (3).                       |
 | `ATOMICITY_ACK=1`         | pre-push     | Push flagged commits anyway; clears their sentinel entries.            |
 | `SKIP_ATOMICITY_GATE=1`   | pre-push     | Disable the pre-push gate entirely. Discouraged.                       |
+| `SKIP_PR_CHECKLIST=1`     | pre-merge-commit | Disable the PR-checklist gate entirely for this merge. Discouraged. |
+| `PR_CHECKLIST_ACK=1`      | pre-merge-commit | Acknowledge incomplete PR checklist and proceed with merge.         |
 
 **Prerequisites after `setup.sh`:**
 
@@ -226,6 +235,8 @@ When asked to "apply settings from X to Y" or "align project config":
 | Pre-commit hook | ruff, mypy, coverage, docstrings, UML, gitleaks, absorb gate | clippy, rustfmt, cargo test, cargo deny, gitleaks, absorb gate | eslint, prettier, vitest, tsc, gitleaks, absorb gate |
 | Post-commit hook | atomicity-check (classifies HEAD's areas, appends `.git/NON_ATOMIC_COMMIT` if ≥3 independent areas) | same | same |
 | Pre-push hook | pre-push-atomicity-gate (blocks push when sentinel intersects push range) | same | same |
+| Pre-merge-commit hook | pr-checklist-merge-gate (blocks local merge when source branch's PR has incomplete checklist) | same | same |
+| PR checklist gate | pre-merge-commit hook + `.github/workflows/pr-checklist.yml` | same | same |
 
 ## Anti-Patterns — Never Do These
 

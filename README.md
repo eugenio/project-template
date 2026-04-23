@@ -62,6 +62,7 @@ Arguments: `--lang python|rust|typescript`, `--project-dir <path>`.
   - `scripts/configure-merge-strategy.sh` — opt-in, one-time: uses `gh repo edit` to disallow squash-merge and merge-commit on the remote, leaving only "Rebase and Merge" in the GitHub UI.
   - `.github/PULL_REQUEST_TEMPLATE.md` — header block reminding PR authors and reviewers that squash-merge is forbidden; includes an atomic-commit checklist.
   - Follow-up (not yet automated): branch protection with `required_linear_history=true`. Tracked in [`TEMPLATE_ROADMAP.md`](TEMPLATE_ROADMAP.md).
+- **PR checklist validation** — `scripts/run_pr_checklists.py` validates GitHub PR checklists via `gh`; the `pre-merge-commit` hook blocks local merges when the source branch's open PR has an incomplete checklist; the `.github/workflows/pr-checklist.yml` CI gate enforces the same check server-side. Bypass with `SKIP_PR_CHECKLIST=1`.
 
 ## LLM / AI Agent Usage
 

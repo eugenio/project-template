@@ -142,3 +142,60 @@ GATE="$REPO_ROOT/scripts/hooks/pre-push-atomicity-gate.sh"
 HOOK
 chmod +x .git/hooks/pre-push
 ```
+
+## `pr-checklist-merge-gate.sh` (pre-merge-commit)
+
+Pre-merge-commit gate. Before a local merge commit is created, resolves the
+source branch from `.git/MERGE_HEAD`, looks up its open GitHub PR via `gh`,
+and **blocks the merge** if that PR's checklist is incomplete (as scored by
+`scripts/run_pr_checklists.py --fail-on-incomplete`). PRs with no checklist
+at all, no open PR at all, or branches that can't be resolved are skipped
+silently — the gate is conservative and defers to CI as the authoritative
+check.
+
+### What the gate does
+
+1. Reads `.git/MERGE_HEAD` to detect an in-progress merge; exits cleanly
+   when no merge is active.
+2. Resolves the source branch by scanning `git branch -a --contains <MERGE_HEAD>`,
+   skipping `HEAD` / `master` / `main`.
+3. Calls `gh pr list --head <branch> --state open --json number,title,url` to
+   find the open PR; if none exists, the gate skips.
+4. Runs `scripts/run_pr_checklists.py --pr <N> --fail-on-incomplete` and
+   blocks the merge (`exit 1`) when the PR has unchecked items, writing a
+   report to `/tmp/pr-checklist-premerge-<PR>.md`.
+
+### Auto-skips
+
+The gate automatically skips when:
+
+- No active merge (`.git/MERGE_HEAD` absent)
+- A rebase, cherry-pick, or bisect is in progress
+- The source branch can't be resolved from `MERGE_HEAD`
+- The `gh` CLI is missing or unauthenticated (CI is authoritative)
+- The source branch has no open PR (direct merges / hotfixes)
+
+### Bypass env vars
+
+| Variable | Effect |
+|---|---|
+| `SKIP_PR_CHECKLIST=1` | Disable the gate entirely for this merge. Discouraged. |
+| `PR_CHECKLIST_ACK=1` | Acknowledge incomplete checklist and proceed. |
+
+### Install / re-install the pre-merge-commit hook
+
+`setup.sh` installs `.git/hooks/pre-merge-commit` automatically. If you ever
+need to restore it manually:
+
+```bash
+# .git/hooks/pre-merge-commit
+cat >.git/hooks/pre-merge-commit <<'HOOK'
+#!/usr/bin/env bash
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+[[ -z "$REPO_ROOT" ]] && exit 0
+GATE="$REPO_ROOT/scripts/hooks/pr-checklist-merge-gate.sh"
+[[ -x "$GATE" ]] && bash "$GATE" "$@" || exit 1
+HOOK
+chmod +x .git/hooks/pre-merge-commit
+```
