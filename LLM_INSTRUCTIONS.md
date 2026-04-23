@@ -176,12 +176,21 @@ copied to `.github/PULL_REQUEST_TEMPLATE.md` by `setup.sh` and tells PR
 authors/reviewers to use "Rebase and Merge".
 
 **Level 2** (branch protection — linear history, required status checks,
-enforce-admins) is not yet automated. Tracked in
-[`TEMPLATE_ROADMAP.md`](TEMPLATE_ROADMAP.md) under "branch-protection
-(level 2)"; plan to add a `gh api` invocation to
-`configure-merge-strategy.sh` (or a separate script) that `PUT`s
-`required_linear_history=true` on the default branch. Until then, enable
-it manually via Settings → Branches → Branch protection rules.
+enforce-admins) is automated via the same script's `--protect-branch` flag:
+
+```bash
+# Enforce merge strategy + branch protection on the default branch in one shot:
+bash scripts/configure-merge-strategy.sh --protect-branch
+# Customise:
+bash scripts/configure-merge-strategy.sh <owner>/<repo> --protect-branch master --min-reviews 1
+# Preview without calling the API:
+bash scripts/configure-merge-strategy.sh <owner>/<repo> --protect-branch master --dry-run
+```
+
+This `PUT`s `required_linear_history=true`, `enforce_admins=true`, strict
+required status checks (empty contexts list to start), and `restrictions=null`.
+`--min-reviews` defaults to 0 so solo-dev repos aren't locked out of
+merging their own PRs; set ≥ 1 on team repos.
 
 ### Step 6 — Commit
 
