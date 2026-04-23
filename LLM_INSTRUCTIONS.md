@@ -151,7 +151,37 @@ pixi global install git-absorb
 
 # 2. Install Node deps for commitlint
 npm install
+
+# 3. Enforce rebase-only merges on the GitHub remote (preserves atomic history).
+#    Requires gh CLI + admin access on the target repo. Opt-in, one-time:
+bash scripts/configure-merge-strategy.sh
 ```
+
+### Why rebase-only merges matter
+
+The four atomicity gates (commit-msg + pre-commit + post-commit + pre-push) only
+preserve atomic history if the PR merge strategy keeps individual commits.
+
+- **Rebase and merge** — commits preserved 1:1. **Required** by the atomicity gates.
+- **Squash and merge** — collapses every commit into one. **Forbidden**; defeats every gate.
+- **Create merge commit** — preserves commits but adds one noisy merge commit. Tolerable, not preferred.
+
+`shared/scripts/configure-merge-strategy.sh` disables squash and merge-commit
+modes on the remote repo via `gh repo edit`, leaving only "Rebase and Merge"
+available in the GitHub UI. This is **level 1** enforcement.
+
+**Level 4** (user-facing nudge) is the
+`shared/.github/PULL_REQUEST_TEMPLATE.md.template` header block, which is
+copied to `.github/PULL_REQUEST_TEMPLATE.md` by `setup.sh` and tells PR
+authors/reviewers to use "Rebase and Merge".
+
+**Level 2** (branch protection — linear history, required status checks,
+enforce-admins) is not yet automated. Tracked in
+[`TEMPLATE_ROADMAP.md`](TEMPLATE_ROADMAP.md) under "branch-protection
+(level 2)"; plan to add a `gh api` invocation to
+`configure-merge-strategy.sh` (or a separate script) that `PUT`s
+`required_linear_history=true` on the default branch. Until then, enable
+it manually via Settings → Branches → Branch protection rules.
 
 ### Step 6 — Commit
 

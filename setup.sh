@@ -135,6 +135,29 @@ else
     ok "Copied: scripts/hooks/README.md"
 fi
 
+# scripts/configure-merge-strategy.sh: opt-in script to enforce rebase-only merges
+MERGE_SCRIPT_SRC="$SHARED_DIR/scripts/configure-merge-strategy.sh"
+MERGE_SCRIPT_DST="$PROJECT_DIR/scripts/configure-merge-strategy.sh"
+if [ -f "$MERGE_SCRIPT_DST" ]; then
+    skip "Already exists (skipping): scripts/configure-merge-strategy.sh"
+else
+    cp "$MERGE_SCRIPT_SRC" "$MERGE_SCRIPT_DST"
+    chmod +x "$MERGE_SCRIPT_DST"
+    ok "Copied + chmod +x: scripts/configure-merge-strategy.sh"
+fi
+
+# .github/PULL_REQUEST_TEMPLATE.md: rebase-merge reminder + atomic-commit checklist
+PR_TEMPLATE_SRC="$SHARED_DIR/.github/PULL_REQUEST_TEMPLATE.md.template"
+PR_TEMPLATE_DST_DIR="$PROJECT_DIR/.github"
+PR_TEMPLATE_DST="$PR_TEMPLATE_DST_DIR/PULL_REQUEST_TEMPLATE.md"
+mkdir -p "$PR_TEMPLATE_DST_DIR"
+if [ -f "$PR_TEMPLATE_DST" ]; then
+    skip "Already exists (skipping): .github/PULL_REQUEST_TEMPLATE.md"
+else
+    cp "$PR_TEMPLATE_SRC" "$PR_TEMPLATE_DST"
+    ok "Copied: .github/PULL_REQUEST_TEMPLATE.md"
+fi
+
 # .gitignore-additions: append to existing .gitignore rather than replacing it
 GITIGNORE_ADDITIONS="$SHARED_DIR/.gitignore-additions.template"
 GITIGNORE_TARGET="$PROJECT_DIR/.gitignore"
@@ -289,6 +312,11 @@ echo -e "  8. Install Node deps (commitlint): npm install"
 echo -e "  9. Post-commit + pre-push atomicity gates are wired automatically."
 echo -e "       Sentinel file: .git/NON_ATOMIC_COMMIT  (consumed by pre-push)"
 echo -e "       Bypass per-push: ATOMICITY_ACK=1 git push ..."
+echo -e " 10. ${BOLD}Enforce rebase-only merges on the remote${NC} (preserves atomic history):"
+echo -e "       bash scripts/configure-merge-strategy.sh   # requires gh CLI + admin access"
+echo -e "     ${YELLOW}Required follow-up${NC} — branch protection (level 2):"
+echo -e "       Enable 'Require linear history' on the default branch. See the"
+echo -e "       'Next steps' printout of configure-merge-strategy.sh."
 echo "  📋 LLM instructions: scripts/project-template/LLM_INSTRUCTIONS.md"
 echo ""
 echo -e "${GREEN}Setup complete.${NC}"
