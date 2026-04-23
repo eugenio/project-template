@@ -200,3 +200,17 @@ else
     echo "   Install: https://github.com/gitleaks/gitleaks"
     echo ""
 fi
+
+# ---------------------------------------------------------------------------
+# 9. git-absorb atomicity gate (logic in scripts/hooks/git-absorb-gate.sh)
+# Re-install after template setup.sh: see scripts/hooks/README.md.
+# ---------------------------------------------------------------------------
+ABSORB_GATE="$(git rev-parse --show-toplevel)/scripts/hooks/git-absorb-gate.sh"
+if [[ -x "$ABSORB_GATE" ]]; then
+    RED="$RED" GREEN="$GREEN" YELLOW="$YELLOW" NC="$NC" \
+        bash "$ABSORB_GATE" || exit 1
+    echo ""
+else
+    warn "atomicity gate script missing: $ABSORB_GATE"
+    echo ""
+fi
