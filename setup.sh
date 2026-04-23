@@ -114,7 +114,7 @@ HOOKS_SRC_DIR="$SHARED_DIR/scripts/hooks"
 HOOKS_DST_DIR="$PROJECT_DIR/scripts/hooks"
 mkdir -p "$HOOKS_DST_DIR"
 
-for hook_script in git-absorb-gate.sh atomicity-check.sh pre-push-atomicity-gate.sh; do
+for hook_script in git-absorb-gate.sh atomicity-check.sh pre-push-atomicity-gate.sh pr-checklist-merge-gate.sh; do
     src="$HOOKS_SRC_DIR/$hook_script"
     dst="$HOOKS_DST_DIR/$hook_script"
     if [ -f "$dst" ]; then
@@ -144,6 +144,42 @@ else
     cp "$MERGE_SCRIPT_SRC" "$MERGE_SCRIPT_DST"
     chmod +x "$MERGE_SCRIPT_DST"
     ok "Copied + chmod +x: scripts/configure-merge-strategy.sh"
+fi
+
+# scripts/{validate,run}_pr_checklists.py: PR checklist validator + gh CLI runner
+for py_script in validate_pr_checklists.py run_pr_checklists.py; do
+    src="$SHARED_DIR/scripts/$py_script"
+    dst="$PROJECT_DIR/scripts/$py_script"
+    if [ -f "$dst" ]; then
+        skip "Already exists (skipping): scripts/$py_script"
+    else
+        cp "$src" "$dst"
+        ok "Copied: scripts/$py_script"
+    fi
+done
+
+# tests/unit/test_validate_pr_checklists.py: reference pytest suite for the PR-checklist parser
+PR_CHECKLIST_TEST_SRC="$SHARED_DIR/tests/unit/test_validate_pr_checklists.py"
+PR_CHECKLIST_TEST_DST_DIR="$PROJECT_DIR/tests/unit"
+PR_CHECKLIST_TEST_DST="$PR_CHECKLIST_TEST_DST_DIR/test_validate_pr_checklists.py"
+mkdir -p "$PR_CHECKLIST_TEST_DST_DIR"
+if [ -f "$PR_CHECKLIST_TEST_DST" ]; then
+    skip "Already exists (skipping): tests/unit/test_validate_pr_checklists.py"
+else
+    cp "$PR_CHECKLIST_TEST_SRC" "$PR_CHECKLIST_TEST_DST"
+    ok "Copied: tests/unit/test_validate_pr_checklists.py"
+fi
+
+# .github/workflows/pr-checklist.yml: CI gate that mirrors the pre-merge-commit hook
+PR_CHECKLIST_WORKFLOW_SRC="$SHARED_DIR/.github/workflows/pr-checklist.yml.template"
+PR_CHECKLIST_WORKFLOW_DST_DIR="$PROJECT_DIR/.github/workflows"
+PR_CHECKLIST_WORKFLOW_DST="$PR_CHECKLIST_WORKFLOW_DST_DIR/pr-checklist.yml"
+mkdir -p "$PR_CHECKLIST_WORKFLOW_DST_DIR"
+if [ -f "$PR_CHECKLIST_WORKFLOW_DST" ]; then
+    skip "Already exists (skipping): .github/workflows/pr-checklist.yml"
+else
+    cp "$PR_CHECKLIST_WORKFLOW_SRC" "$PR_CHECKLIST_WORKFLOW_DST"
+    ok "Copied: .github/workflows/pr-checklist.yml"
 fi
 
 # .github/PULL_REQUEST_TEMPLATE.md: rebase-merge reminder + atomic-commit checklist
@@ -196,9 +232,9 @@ case "$LANG" in
 esac
 
 # ---------------------------------------------------------------------------
-# 3. Git hooks (pre-commit + commit-msg + post-commit + pre-push)
+# 3. Git hooks (pre-commit + commit-msg + post-commit + pre-push + pre-merge-commit)
 # ---------------------------------------------------------------------------
-section "Git hooks (pre-commit + commit-msg + post-commit + pre-push)"
+section "Git hooks (pre-commit + commit-msg + post-commit + pre-push + pre-merge-commit)"
 
 HOOK_SRC="$LANG_DIR/pre-commit-hook.sh"
 GIT_DIR="$PROJECT_DIR/.git"
@@ -207,6 +243,7 @@ COMMIT_MSG_SRC="$SHARED_DIR/commit-msg-hook.sh"
 COMMIT_MSG_DST="$GIT_DIR/hooks/commit-msg"
 POST_COMMIT_DST="$GIT_DIR/hooks/post-commit"
 PRE_PUSH_DST="$GIT_DIR/hooks/pre-push"
+PRE_MERGE_COMMIT_DST="$GIT_DIR/hooks/pre-merge-commit"
 
 if [ ! -d "$GIT_DIR" ]; then
     skip ".git directory not found in $PROJECT_DIR — skipping hook install."
@@ -274,6 +311,27 @@ HOOK
         chmod +x "$PRE_PUSH_DST"
         ok "Installed pre-push hook → $PRE_PUSH_DST"
     fi
+
+    # pre-merge-commit: PR checklist gate (logic in scripts/hooks/pr-checklist-merge-gate.sh)
+    if [ -f "$PRE_MERGE_COMMIT_DST" ]; then
+        skip "pre-merge-commit hook already exists at $PRE_MERGE_COMMIT_DST"
+        skip "Review and merge manually if needed."
+    else
+        cat >"$PRE_MERGE_COMMIT_DST" <<'HOOK'
+#!/usr/bin/env bash
+# pre-merge-commit — PR checklist gate (logic in scripts/hooks/pr-checklist-merge-gate.sh)
+# Re-install after template setup.sh: see scripts/hooks/README.md.
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+[[ -z "$REPO_ROOT" ]] && exit 0
+GATE="$REPO_ROOT/scripts/hooks/pr-checklist-merge-gate.sh"
+if [[ -x "$GATE" ]]; then
+    bash "$GATE" "$@" || exit 1
+fi
+HOOK
+        chmod +x "$PRE_MERGE_COMMIT_DST"
+        ok "Installed pre-merge-commit hook → $PRE_MERGE_COMMIT_DST"
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -317,6 +375,9 @@ echo -e "       bash scripts/configure-merge-strategy.sh   # requires gh CLI + a
 echo -e "     ${YELLOW}Required follow-up${NC} — branch protection (level 2):"
 echo -e "       Enable 'Require linear history' on the default branch. See the"
 echo -e "       'Next steps' printout of configure-merge-strategy.sh."
+echo -e " 11. PR-checklist gate is wired automatically (pre-merge-commit hook +"
+echo -e "       .github/workflows/pr-checklist.yml). Requires ${CYAN}gh${NC} CLI locally."
+echo -e "       Bypass per-merge: SKIP_PR_CHECKLIST=1 git merge ..."
 echo "  📋 LLM instructions: scripts/project-template/LLM_INSTRUCTIONS.md"
 echo ""
 echo -e "${GREEN}Setup complete.${NC}"
