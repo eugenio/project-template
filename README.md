@@ -53,7 +53,11 @@ Arguments: `--lang python|rust|typescript`, `--project-dir <path>`.
 
 ## Features
 
-- **Commit-atomicity gates**: commitlint (angular preset) on `commit-msg` + `git-absorb --dry-run` on `pre-commit` enforce that every commit is well-formed and not a fixup of an existing branch commit.
+- **Commit-atomicity gates**: four complementary hooks enforce atomic commits end-to-end.
+  - `commit-msg` — commitlint (angular preset) validates the message format.
+  - `pre-commit` — `git-absorb --dry-run` blocks commits that look like fixups of an existing branch commit.
+  - `post-commit` — `atomicity-check.sh` classifies `HEAD`'s changed paths into logical areas (plugin:X, workers, gateway, docs, …) and appends the SHA to `.git/NON_ATOMIC_COMMIT` when the commit spans ≥ 3 independent areas (threshold configurable).
+  - `pre-push` — `pre-push-atomicity-gate.sh` intersects pushed commits with that sentinel and blocks the push until non-atomic commits are split or acknowledged (`ATOMICITY_ACK=1`).
 
 ## LLM / AI Agent Usage
 

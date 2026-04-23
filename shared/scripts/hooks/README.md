@@ -62,3 +62,83 @@ else
     echo ""
 fi
 ```
+
+## `atomicity-check.sh` (post-commit)
+
+Post-commit classifier. Complements the pre-commit `git-absorb-gate.sh`:
+where the absorb gate catches *fixups* (one small change that belongs in an
+earlier commit), this check catches *wide* commits (one commit that bundles
+unrelated changes).
+
+### What the check does
+
+1. Runs on every commit via `.git/hooks/post-commit`.
+2. Classifies each path changed by `HEAD` into a logical area:
+   `plugin:<name>` (for `plugins/<name>/…` or `tests/unit/<name>/…`),
+   `workers`, `gateway`, `docs`, `scripts`, `infra`, `ci`, `tests-misc`,
+   or `root-config` (top-level files).
+3. Counts *independent* areas — support areas (`docs`, `scripts`, `ci`,
+   `infra`, `root-config`) don't contribute. Threshold is `3`
+   (override with `ATOMICITY_THRESHOLD=<N>`).
+4. If the commit spans ≥ threshold independent areas, appends
+   `<sha>\t<reason>` to `.git/NON_ATOMIC_COMMIT` and prints a warning.
+   The post-commit hook never aborts the commit — it already landed —
+   but the sentinel becomes the signal the pre-push gate consumes.
+5. On an atomic commit, any existing sentinel row for that SHA is pruned.
+
+### Bypass env vars (atomicity check)
+
+| Variable                  | Effect                                                       |
+| ------------------------- | ------------------------------------------------------------ |
+| `SKIP_ATOMICITY_CHECK=1`  | Disable the check for this commit. Discouraged.              |
+| `ATOMICITY_THRESHOLD=<N>` | Override the default independence threshold (3).             |
+
+### Auto-skips (atomicity check)
+
+- Current branch is `master` or `main`.
+- Initial commit (no parent) or merge commit (multiple parents).
+- A merge, rebase, or cherry-pick is in progress.
+
+## `pre-push-atomicity-gate.sh` (pre-push)
+
+Pre-push gate. Reads git's standard pre-push stdin protocol, computes every
+commit that would land on the remote, intersects them with
+`.git/NON_ATOMIC_COMMIT`, and **blocks the push** if any pushed commit is
+flagged. Each blocked commit is printed with its subject and the reason the
+post-commit check recorded.
+
+### Bypass env vars (pre-push gate)
+
+| Variable                 | Effect                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `ATOMICITY_ACK=1`        | Push anyway. Acknowledged SHAs are removed from the sentinel so they stop blocking future pushes.   |
+| `SKIP_ATOMICITY_GATE=1`  | Disable the gate entirely for this push. Discouraged.                                               |
+
+### Install / re-install the post-commit and pre-push hooks
+
+`setup.sh` installs both `.git/hooks/post-commit` and `.git/hooks/pre-push`
+automatically. If you ever need to restore them manually:
+
+```bash
+# .git/hooks/post-commit
+cat >.git/hooks/post-commit <<'HOOK'
+#!/usr/bin/env bash
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+[[ -z "$REPO_ROOT" ]] && exit 0
+CHECK="$REPO_ROOT/scripts/hooks/atomicity-check.sh"
+[[ -x "$CHECK" ]] && bash "$CHECK" || true
+HOOK
+chmod +x .git/hooks/post-commit
+
+# .git/hooks/pre-push
+cat >.git/hooks/pre-push <<'HOOK'
+#!/usr/bin/env bash
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+[[ -z "$REPO_ROOT" ]] && exit 0
+GATE="$REPO_ROOT/scripts/hooks/pre-push-atomicity-gate.sh"
+[[ -x "$GATE" ]] && bash "$GATE" "$@" || exit 1
+HOOK
+chmod +x .git/hooks/pre-push
+```

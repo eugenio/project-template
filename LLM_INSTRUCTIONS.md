@@ -106,7 +106,7 @@ cd /path/to/project && .git/hooks/pre-commit
 
 Fix every failure before proceeding. A hook that fails on a clean tree means the setup is incomplete.
 
-**Two additional hooks installed by `setup.sh`:**
+**Four additional hooks installed by `setup.sh`:**
 
 - **`commit-msg`** (`shared/commit-msg-hook.sh` → `.git/hooks/commit-msg`): runs
   `npx commitlint --edit "$1"` to validate the commit message against the angular
@@ -117,13 +117,29 @@ Fix every failure before proceeding. A hook that fails on a clean tree means the
   looks like a fixup of a previous branch commit, enforcing atomic commit discipline.
   Requires `git-absorb` binary: `pixi global install git-absorb` (or `cargo install
   git-absorb` / `apt install git-absorb`).
+- **`scripts/hooks/atomicity-check.sh`** (called from `.git/hooks/post-commit`):
+  classifies `HEAD`'s changed paths into logical areas and flags the commit as
+  non-atomic when it spans ≥ 3 independent areas (plugin:X, workers, gateway, …;
+  support areas like docs/scripts/ci/infra/root-config don't contribute). Flagged
+  SHAs are appended to `.git/NON_ATOMIC_COMMIT`. The hook never aborts the commit
+  (post-commit cannot) — the sentinel is the signal consumed by pre-push.
+  Complements the absorb gate: absorb catches *fixups*, this catches *wide*
+  commits that bundle unrelated changes.
+- **`scripts/hooks/pre-push-atomicity-gate.sh`** (called from `.git/hooks/pre-push`):
+  reads git's pre-push stdin, intersects pushed commits with
+  `.git/NON_ATOMIC_COMMIT`, and **blocks the push** if any pushed commit is
+  flagged. Acknowledging with `ATOMICITY_ACK=1` clears the SHAs from the sentinel.
 
-**Bypass env vars for the absorb gate (per-commit, not persisted):**
+**Bypass env vars (per-commit / per-push, not persisted):**
 
-| Variable | Meaning |
-|---|---|
-| `ABSORB_ACK=1` | This IS a new atomic commit — I verified manually. Gate passes. |
-| `SKIP_ABSORB_CHECK=1` | Disable the gate entirely for this commit. Discouraged. |
+| Variable                  | Gate         | Meaning                                                                |
+| ------------------------- | ------------ | ---------------------------------------------------------------------- |
+| `ABSORB_ACK=1`            | pre-commit   | This IS a new atomic commit — I verified manually. Absorb gate passes. |
+| `SKIP_ABSORB_CHECK=1`     | pre-commit   | Disable the absorb gate entirely. Discouraged.                         |
+| `SKIP_ATOMICITY_CHECK=1`  | post-commit  | Skip classifying HEAD's areas for this commit.                         |
+| `ATOMICITY_THRESHOLD=<N>` | post-commit  | Override the default independence threshold (3).                       |
+| `ATOMICITY_ACK=1`         | pre-push     | Push flagged commits anyway; clears their sentinel entries.            |
+| `SKIP_ATOMICITY_GATE=1`   | pre-push     | Disable the pre-push gate entirely. Discouraged.                       |
 
 **Prerequisites after `setup.sh`:**
 
@@ -169,6 +185,8 @@ When asked to "apply settings from X to Y" or "align project config":
 | Release | semantic-release (angular) | semantic-release (angular) | semantic-release (angular) |
 | Commit format | `<type>(<scope>): <desc>` commitlint (angular) | same | same |
 | Pre-commit hook | ruff, mypy, coverage, docstrings, UML, gitleaks, absorb gate | clippy, rustfmt, cargo test, cargo deny, gitleaks, absorb gate | eslint, prettier, vitest, tsc, gitleaks, absorb gate |
+| Post-commit hook | atomicity-check (classifies HEAD's areas, appends `.git/NON_ATOMIC_COMMIT` if ≥3 independent areas) | same | same |
+| Pre-push hook | pre-push-atomicity-gate (blocks push when sentinel intersects push range) | same | same |
 
 ## Anti-Patterns — Never Do These
 
