@@ -106,6 +106,37 @@ cd /path/to/project && .git/hooks/pre-commit
 
 Fix every failure before proceeding. A hook that fails on a clean tree means the setup is incomplete.
 
+**Two additional hooks installed by `setup.sh`:**
+
+- **`commit-msg`** (`shared/commit-msg-hook.sh` → `.git/hooks/commit-msg`): runs
+  `npx commitlint --edit "$1"` to validate the commit message against the angular
+  preset (matching `.releaserc.yml`). Requires `npm install` after `setup.sh` to
+  pull in `@commitlint/cli` and `@commitlint/config-angular`.
+- **`scripts/hooks/git-absorb-gate.sh`** (called from the final step of `.git/hooks/pre-commit`):
+  runs `git-absorb --dry-run` on staged changes and blocks the commit if the change
+  looks like a fixup of a previous branch commit, enforcing atomic commit discipline.
+  Requires `git-absorb` binary: `pixi global install git-absorb` (or `cargo install
+  git-absorb` / `apt install git-absorb`).
+
+**Bypass env vars for the absorb gate (per-commit, not persisted):**
+
+| Variable | Meaning |
+|---|---|
+| `ABSORB_ACK=1` | This IS a new atomic commit — I verified manually. Gate passes. |
+| `SKIP_ABSORB_CHECK=1` | Disable the gate entirely for this commit. Discouraged. |
+
+**Prerequisites after `setup.sh`:**
+
+```bash
+# 1. Install git-absorb (choose one)
+pixi global install git-absorb
+# cargo install git-absorb
+# apt install git-absorb
+
+# 2. Install Node deps for commitlint
+npm install
+```
+
 ### Step 6 — Commit
 
 ```bash
@@ -136,7 +167,8 @@ When asked to "apply settings from X to Y" or "align project config":
 | Docstring gate | 99.9% (interrogate) | `#[deny(missing_docs)]` | tsdoc |
 | Secret scanning | gitleaks | gitleaks | gitleaks |
 | Release | semantic-release (angular) | semantic-release (angular) | semantic-release (angular) |
-| Commit format | `<type>(<scope>): <desc>` | same | same |
+| Commit format | `<type>(<scope>): <desc>` commitlint (angular) | same | same |
+| Pre-commit hook | ruff, mypy, coverage, docstrings, UML, gitleaks, absorb gate | clippy, rustfmt, cargo test, cargo deny, gitleaks, absorb gate | eslint, prettier, vitest, tsc, gitleaks, absorb gate |
 
 ## Anti-Patterns — Never Do These
 

@@ -51,6 +51,10 @@ Arguments: `--lang python|rust|typescript`, `--project-dir <path>`.
 | `eslint.config.mjs.template` | Flat ESLint config stub |
 | `pre-commit-hook.sh` | TS pre-commit: eslint, prettier --check, vitest |
 
+## Features
+
+- **Commit-atomicity gates**: commitlint (angular preset) on `commit-msg` + `git-absorb --dry-run` on `pre-commit` enforce that every commit is well-formed and not a fixup of an existing branch commit.
+
 ## LLM / AI Agent Usage
 
 If you're using an AI coding assistant (Claude Code, Copilot, Cursor, etc.), see [LLM_INSTRUCTIONS.md](LLM_INSTRUCTIONS.md) for step-by-step instructions the agent can follow to apply this template.
