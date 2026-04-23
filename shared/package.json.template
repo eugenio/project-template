@@ -12,6 +12,8 @@
     "@semantic-release/changelog": "^6.0.0",
     "@semantic-release/exec": "^7.0.0",
     "@semantic-release/git": "^10.0.0",
-    "@semantic-release/github": "^10.0.0"
+    "@semantic-release/github": "^10.0.0",
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-angular": "^20.0.0"
   }
 }

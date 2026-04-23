@@ -1,0 +1,33 @@
+/**
+ * commitlint configuration.
+ *
+ * Uses the angular preset to match semantic-release (see .releaserc.yml).
+ * Enforces Conventional Commits so each commit is atomic and parseable
+ * by the release-notes generator.
+ */
+module.exports = {
+  extends: ['@commitlint/config-angular'],
+  rules: {
+    // Allow the extra types already accepted by .releaserc.yml releaseRules.
+    'type-enum': [
+      2,
+      'always',
+      [
+        'build',
+        'chore',
+        'ci',
+        'docs',
+        'feat',
+        'fix',
+        'perf',
+        'refactor',
+        'revert',
+        'style',
+        'test',
+      ],
+    ],
+    'subject-case': [0],
+    'header-max-length': [2, 'always', 100],
+    'body-max-line-length': [2, 'always', 120],
+  },
+};
