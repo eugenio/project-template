@@ -1,0 +1,30 @@
+---
+name: PR Checklist
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+permissions:
+  pull-requests: read
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate PR checklist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/run_pr_checklists.py \
+            --pr ${{ github.event.pull_request.number }} \
+            --fail-on-incomplete \
+            --output pr-checklist-report.md
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-checklist-report
+          path: pr-checklist-report.md
