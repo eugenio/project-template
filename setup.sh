@@ -114,15 +114,17 @@ HOOKS_SRC_DIR="$SHARED_DIR/scripts/hooks"
 HOOKS_DST_DIR="$PROJECT_DIR/scripts/hooks"
 mkdir -p "$HOOKS_DST_DIR"
 
-GATE_SRC="$HOOKS_SRC_DIR/git-absorb-gate.sh"
-GATE_DST="$HOOKS_DST_DIR/git-absorb-gate.sh"
-if [ -f "$GATE_DST" ]; then
-    skip "Already exists (skipping): scripts/hooks/git-absorb-gate.sh"
-else
-    cp "$GATE_SRC" "$GATE_DST"
-    chmod +x "$GATE_DST"
-    ok "Copied + chmod +x: scripts/hooks/git-absorb-gate.sh"
-fi
+for hook_script in git-absorb-gate.sh atomicity-check.sh pre-push-atomicity-gate.sh; do
+    src="$HOOKS_SRC_DIR/$hook_script"
+    dst="$HOOKS_DST_DIR/$hook_script"
+    if [ -f "$dst" ]; then
+        skip "Already exists (skipping): scripts/hooks/$hook_script"
+    else
+        cp "$src" "$dst"
+        chmod +x "$dst"
+        ok "Copied + chmod +x: scripts/hooks/$hook_script"
+    fi
+done
 
 HOOKS_README_SRC="$HOOKS_SRC_DIR/README.md"
 HOOKS_README_DST="$HOOKS_DST_DIR/README.md"
@@ -171,15 +173,17 @@ case "$LANG" in
 esac
 
 # ---------------------------------------------------------------------------
-# 3. Git hooks (pre-commit + commit-msg)
+# 3. Git hooks (pre-commit + commit-msg + post-commit + pre-push)
 # ---------------------------------------------------------------------------
-section "Git hooks (pre-commit + commit-msg)"
+section "Git hooks (pre-commit + commit-msg + post-commit + pre-push)"
 
 HOOK_SRC="$LANG_DIR/pre-commit-hook.sh"
 GIT_DIR="$PROJECT_DIR/.git"
 HOOK_DST="$GIT_DIR/hooks/pre-commit"
 COMMIT_MSG_SRC="$SHARED_DIR/commit-msg-hook.sh"
 COMMIT_MSG_DST="$GIT_DIR/hooks/commit-msg"
+POST_COMMIT_DST="$GIT_DIR/hooks/post-commit"
+PRE_PUSH_DST="$GIT_DIR/hooks/pre-push"
 
 if [ ! -d "$GIT_DIR" ]; then
     skip ".git directory not found in $PROJECT_DIR — skipping hook install."
@@ -200,6 +204,52 @@ else
         cp "$COMMIT_MSG_SRC" "$COMMIT_MSG_DST"
         chmod +x "$COMMIT_MSG_DST"
         ok "Installed commit-msg hook → $COMMIT_MSG_DST"
+    fi
+
+    # post-commit: atomicity classifier (logic in scripts/hooks/atomicity-check.sh)
+    if [ -f "$POST_COMMIT_DST" ]; then
+        skip "post-commit hook already exists at $POST_COMMIT_DST"
+        skip "Review and merge manually if needed."
+    else
+        cat >"$POST_COMMIT_DST" <<'HOOK'
+#!/usr/bin/env bash
+# post-commit — atomicity marker (logic in scripts/hooks/atomicity-check.sh)
+# Re-install after template setup.sh: see scripts/hooks/README.md.
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+[[ -z "$REPO_ROOT" ]] && exit 0
+CHECK="$REPO_ROOT/scripts/hooks/atomicity-check.sh"
+if [[ -x "$CHECK" ]]; then
+    # Advisory: post-commit cannot undo the commit. The sentinel file
+    # .git/NON_ATOMIC_COMMIT is the signal consumed by pre-push.
+    bash "$CHECK" || true
+fi
+HOOK
+        chmod +x "$POST_COMMIT_DST"
+        ok "Installed post-commit hook → $POST_COMMIT_DST"
+    fi
+
+    # pre-push: atomicity gate (logic in scripts/hooks/pre-push-atomicity-gate.sh)
+    if [ -f "$PRE_PUSH_DST" ]; then
+        skip "pre-push hook already exists at $PRE_PUSH_DST"
+        skip "Review and merge manually if needed."
+    else
+        cat >"$PRE_PUSH_DST" <<'HOOK'
+#!/usr/bin/env bash
+# pre-push — atomicity gate (logic in scripts/hooks/pre-push-atomicity-gate.sh)
+# Re-install after template setup.sh: see scripts/hooks/README.md.
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+[[ -z "$REPO_ROOT" ]] && exit 0
+GATE="$REPO_ROOT/scripts/hooks/pre-push-atomicity-gate.sh"
+if [[ -x "$GATE" ]]; then
+    # pre-push receives: <remote-name> <remote-url> as args
+    # and <local-ref> <local-sha> <remote-ref> <remote-sha> lines on stdin.
+    bash "$GATE" "$@" || exit 1
+fi
+HOOK
+        chmod +x "$PRE_PUSH_DST"
+        ok "Installed pre-push hook → $PRE_PUSH_DST"
     fi
 fi
 
@@ -233,9 +283,12 @@ esac
 echo ""
 echo -e "  5. Adapt .releaserc.yml: branch name, assets list, github vs gitlab plugin"
 echo -e "  6. Install gitleaks: https://github.com/gitleaks/gitleaks#installing"
-echo -e "  7. Install git-absorb (atomicity gate):"
+echo -e "  7. Install git-absorb (pre-commit atomicity gate):"
 echo -e "       pixi global install git-absorb  OR  cargo install git-absorb  OR  apt install git-absorb"
 echo -e "  8. Install Node deps (commitlint): npm install"
+echo -e "  9. Post-commit + pre-push atomicity gates are wired automatically."
+echo -e "       Sentinel file: .git/NON_ATOMIC_COMMIT  (consumed by pre-push)"
+echo -e "       Bypass per-push: ATOMICITY_ACK=1 git push ..."
 echo "  📋 LLM instructions: scripts/project-template/LLM_INSTRUCTIONS.md"
 echo ""
 echo -e "${GREEN}Setup complete.${NC}"
